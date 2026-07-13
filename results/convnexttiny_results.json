@@ -1,0 +1,17 @@
+{
+    "model": "EfficientNetV2-S",
+    "number_of_classes": 100,
+    "training_images": 5000,
+    "validation_images": 1100,
+    "testing_images": 1100,
+    "image_size": 224,
+    "batch_size": 4,
+    "best_validation_accuracy": 0.9890909090909091,
+    "test_loss": 0.008866115867481726,
+    "top_1_accuracy": 0.9981818181818182,
+    "top_5_accuracy": 1.0,
+    "average_inference_ms_per_image": 86.02515081818142,
+    "total_parameter_count": 20305588,
+    "trainable_parameter_count": 128100,
+    "training_seconds": 4690.212273800018
+}

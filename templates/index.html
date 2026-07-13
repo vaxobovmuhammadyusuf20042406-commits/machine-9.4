@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Assistive Object Recognition</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-content">
+            <div>
+                <p class="eyebrow">Machine Learning and Smart Systems</p>
+
+                <h1>Explainable Daily Object Recognition</h1>
+
+                <p class="subtitle">
+                    Upload an everyday object image and receive an
+                    AI-generated prediction with confidence information.
+                </p>
+            </div>
+
+            <div class="header-badge">
+                Assistive Navigation Prototype
+            </div>
+        </div>
+    </header>
+
+    <main class="page-container">
+        <section class="main-grid">
+
+            <div class="card upload-card">
+                <div class="section-heading">
+                    <span class="step-number">1</span>
+
+                    <div>
+                        <h2>Upload an image</h2>
+
+                        <p>
+                            Select a PNG, JPG, or JPEG image up to 8 MB.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="predictionForm">
+                    <label
+                        for="imageInput"
+                        class="upload-area"
+                        id="uploadArea"
+                    >
+                        <input
+                            type="file"
+                            id="imageInput"
+                            name="image"
+                            accept=".png,.jpg,.jpeg"
+                            hidden
+                            required
+                        >
+
+                        <div
+                            class="upload-placeholder"
+                            id="uploadPlaceholder"
+                        >
+                            <div class="upload-icon">⇧</div>
+
+                            <h3>Choose or drop an image</h3>
+
+                            <p>
+                                Click here or drag an image into this area.
+                            </p>
+
+                            <span class="browse-button">
+                                Browse files
+                            </span>
+                        </div>
+
+                        <img
+                            id="imagePreview"
+                            class="image-preview hidden"
+                            alt="Selected image preview"
+                        >
+                    </label>
+
+                    <div class="form-group">
+                        <label for="modelSelect">
+                            Recognition model
+                        </label>
+
+                        <select
+                            id="modelSelect"
+                            name="model"
+                        >
+                            <option
+                                value="efficientnetv2"
+                                selected
+                            >
+                                EfficientNetV2-S
+                            </option>
+
+                            <option
+                                value="custom_cnn"
+                                disabled
+                            >
+                                Custom CNN — integration pending
+                            </option>
+
+                            <option
+                                value="convnexttiny"
+                                disabled
+                            >
+                                ConvNeXt-Tiny — training pending
+                            </option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                        id="predictButton"
+                    >
+                        Predict object
+                    </button>
+
+                    <div
+                        id="formMessage"
+                        class="message hidden"
+                    ></div>
+                </form>
+            </div>
+
+            <div class="card result-card">
+                <div class="section-heading">
+                    <span class="step-number">2</span>
+
+                    <div>
+                        <h2>Prediction result</h2>
+
+                        <p>
+                            The model output will appear here.
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    id="emptyResult"
+                    class="empty-result"
+                >
+                    <div class="result-placeholder-icon">AI</div>
+
+                    <h3>No prediction yet</h3>
+
+                    <p>
+                        Upload an image and select Predict object.
+                    </p>
+                </div>
+
+                <div
+                    id="resultContent"
+                    class="result-content hidden"
+                >
+                    <div class="prediction-label">
+                        <span>Predicted class</span>
+
+                        <h3 id="predictionText">—</h3>
+                    </div>
+
+                    <div class="metric-block">
+                        <div class="metric-heading">
+                            <span>Confidence</span>
+
+                            <strong id="confidenceText">0%</strong>
+                        </div>
+
+                        <div class="progress-track">
+                            <div
+                                id="confidenceBar"
+                                class="progress-bar"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div class="result-summary">
+                        <div class="summary-item">
+                            <span>Confidence level</span>
+
+                            <strong id="confidenceLevel">
+                                —
+                            </strong>
+                        </div>
+
+                        <div class="summary-item">
+                            <span>Model</span>
+
+                            <strong id="modelName">
+                                —
+                            </strong>
+                        </div>
+
+                        <div class="summary-item">
+                            <span>Inference time</span>
+
+                            <strong id="inferenceTime">
+                                —
+                            </strong>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        id="speakButton"
+                    >
+                        🔊 Speak prediction
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card top-five-card">
+            <section class="card gradcam-card">
+    <div class="section-heading">
+        <span class="step-number">4</span>
+
+        <div>
+            <h2>Grad-CAM explanation</h2>
+
+            <p>
+                Highlighted regions show where the model focused
+                when making its prediction.
+            </p>
+        </div>
+    </div>
+
+    <div
+        id="gradcamEmpty"
+        class="gradcam-empty"
+    >
+        The Grad-CAM explanation will appear after prediction.
+    </div>
+
+    <div
+        id="gradcamContent"
+        class="gradcam-content hidden"
+    >
+        <img
+            id="gradcamImage"
+            alt="Grad-CAM explanation"
+        >
+
+        <div class="gradcam-description">
+            <h3>How to interpret this image</h3>
+
+            <p>
+                Red and yellow regions contributed most strongly to
+                the prediction. Blue regions had less influence.
+            </p>
+
+            <p>
+                A trustworthy result should focus mainly on the object
+                rather than the plain background.
+            </p>
+        </div>
+    </div>
+</section>
+            <div class="section-heading">
+                <span class="step-number">3</span>
+
+                <div>
+                    <h2>Top-five predictions</h2>
+
+                    <p>
+                        Alternative model predictions ranked by confidence.
+                    </p>
+                </div>
+                
+            </div>
+
+            <div
+                id="topFiveEmpty"
+                class="top-five-empty"
+            >
+                Top-five predictions will appear after analysis.
+            </div>
+
+            <div
+                id="topFiveList"
+                class="top-five-list hidden"
+            ></div>
+        </section>
+
+        <section class="information-grid">
+            <article class="info-card">
+                <h3>Dataset</h3>
+
+                <p>COIL-100</p>
+
+                <span>
+                    7,200 images across 100 object classes.
+                </span>
+            </article>
+
+            <article class="info-card">
+                <h3>Input resolution</h3>
+
+                <p>224 × 224</p>
+
+                <span>
+                    Images are resized and normalized before prediction.
+                </span>
+            </article>
+
+            <article class="info-card">
+                <h3>Best model accuracy</h3>
+
+                <p>99.82%</p>
+
+                <span>
+                    EfficientNetV2-S Top-1 test accuracy.
+                </span>
+            </article>
+
+            <article class="info-card">
+                <h3>Assistive purpose</h3>
+
+                <p>Object identification</p>
+
+                <span>
+                    Designed as a prototype component, not a complete
+                    navigation system.
+                </span>
+            </article>
+        </section>
+    </main>
+
+    <footer>
+        <p>
+            Explainable Daily Object Recognition for Camera-Based
+            Assistive Navigation
+        </p>
+    </footer>
+
+    <script
+        src="{{ url_for('static', filename='js/script.js') }}"
+    ></script>
+</body>
+</html>
