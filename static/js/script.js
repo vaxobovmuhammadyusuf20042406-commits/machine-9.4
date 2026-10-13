@@ -120,13 +120,13 @@ function updateTopFive(predictions) {
 
 function showPredictionResult(data) {
     latestPrediction = data;
-    if (data.gradcam_url) {
-    gradcamImage.src =
-        `${data.gradcam_url}?timestamp=${Date.now()}`;
 
-    gradcamEmpty.classList.add("hidden");
-    gradcamContent.classList.remove("hidden");
-}
+    if (data.gradcam_url) {
+        gradcamImage.src = data.gradcam_url;
+
+        gradcamEmpty.classList.add("hidden");
+        gradcamContent.classList.remove("hidden");
+    }
 
     predictionText.textContent = data.prediction;
     confidenceText.textContent = `${data.confidence.toFixed(2)}%`;

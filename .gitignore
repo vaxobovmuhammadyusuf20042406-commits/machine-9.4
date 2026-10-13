@@ -6,3 +6,5 @@ models/*.pth
 data/
 uploads/
 static/generated/
+# Local clone of the Hugging Face Space (has its own git history)
+machine-9-4-object-recognition/

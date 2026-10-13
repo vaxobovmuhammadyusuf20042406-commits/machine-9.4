@@ -100,26 +100,14 @@
                             id="modelSelect"
                             name="model"
                         >
+                            {% for model in models %}
                             <option
-                                value="efficientnetv2"
-                                selected
+                                value="{{ model.key }}"
+                                {% if model.key == default_model_key %}selected{% endif %}
                             >
-                                EfficientNetV2-S
+                                {{ model.name }}
                             </option>
-
-                            <option
-                                value="custom_cnn"
-                                disabled
-                            >
-                                Custom CNN — integration pending
-                            </option>
-
-                            <option
-                                value="convnexttiny"
-                                disabled
-                            >
-                                ConvNeXt-Tiny — training pending
-                            </option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -227,51 +215,6 @@
         </section>
 
         <section class="card top-five-card">
-            <section class="card gradcam-card">
-    <div class="section-heading">
-        <span class="step-number">4</span>
-
-        <div>
-            <h2>Grad-CAM explanation</h2>
-
-            <p>
-                Highlighted regions show where the model focused
-                when making its prediction.
-            </p>
-        </div>
-    </div>
-
-    <div
-        id="gradcamEmpty"
-        class="gradcam-empty"
-    >
-        The Grad-CAM explanation will appear after prediction.
-    </div>
-
-    <div
-        id="gradcamContent"
-        class="gradcam-content hidden"
-    >
-        <img
-            id="gradcamImage"
-            alt="Grad-CAM explanation"
-        >
-
-        <div class="gradcam-description">
-            <h3>How to interpret this image</h3>
-
-            <p>
-                Red and yellow regions contributed most strongly to
-                the prediction. Blue regions had less influence.
-            </p>
-
-            <p>
-                A trustworthy result should focus mainly on the object
-                rather than the plain background.
-            </p>
-        </div>
-    </div>
-</section>
             <div class="section-heading">
                 <span class="step-number">3</span>
 
@@ -282,7 +225,6 @@
                         Alternative model predictions ranked by confidence.
                     </p>
                 </div>
-                
             </div>
 
             <div
@@ -296,6 +238,52 @@
                 id="topFiveList"
                 class="top-five-list hidden"
             ></div>
+        </section>
+
+        <section class="card gradcam-card">
+            <div class="section-heading">
+                <span class="step-number">4</span>
+
+                <div>
+                    <h2>Grad-CAM explanation</h2>
+
+                    <p>
+                        Highlighted regions show where the model focused
+                        when making its prediction.
+                    </p>
+                </div>
+            </div>
+
+            <div
+                id="gradcamEmpty"
+                class="gradcam-empty"
+            >
+                The Grad-CAM explanation will appear after prediction.
+            </div>
+
+            <div
+                id="gradcamContent"
+                class="gradcam-content hidden"
+            >
+                <img
+                    id="gradcamImage"
+                    alt="Grad-CAM explanation"
+                >
+
+                <div class="gradcam-description">
+                    <h3>How to interpret this image</h3>
+
+                    <p>
+                        Red and yellow regions contributed most strongly to
+                        the prediction. Blue regions had less influence.
+                    </p>
+
+                    <p>
+                        A trustworthy result should focus mainly on the object
+                        rather than the plain background.
+                    </p>
+                </div>
+            </div>
         </section>
 
         <section class="information-grid">
@@ -322,10 +310,10 @@
             <article class="info-card">
                 <h3>Best model accuracy</h3>
 
-                <p>99.82%</p>
+                <p>100%</p>
 
                 <span>
-                    EfficientNetV2-S Top-1 test accuracy.
+                    ConvNeXt-Tiny Top-1 test accuracy.
                 </span>
             </article>
 

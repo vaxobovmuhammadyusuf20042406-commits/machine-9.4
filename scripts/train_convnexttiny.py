@@ -30,16 +30,16 @@ RESULTS_DIR = Path("results")
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-LAST_CHECKPOINT_PATH = MODEL_DIR / "efficientnetv2_last_checkpoint.pth"
-BEST_MODEL_PATH = MODEL_DIR / "efficientnetv2_best.pth"
-FINAL_MODEL_PATH = MODEL_DIR / "efficientnetv2_final.pth"
+LAST_CHECKPOINT_PATH = MODEL_DIR / "convnexttiny_last_checkpoint.pth"
+BEST_MODEL_PATH = MODEL_DIR / "convnexttiny_best.pth"
+FINAL_MODEL_PATH = MODEL_DIR / "convnexttiny_final.pth"
 
-HISTORY_CSV_PATH = RESULTS_DIR / "efficientnetv2_history.csv"
-RESULTS_JSON_PATH = RESULTS_DIR / "efficientnetv2_results.json"
-RESULTS_TEXT_PATH = RESULTS_DIR / "efficientnetv2_results.txt"
+HISTORY_CSV_PATH = RESULTS_DIR / "convnexttiny_history.csv"
+RESULTS_JSON_PATH = RESULTS_DIR / "convnexttiny_results.json"
+RESULTS_TEXT_PATH = RESULTS_DIR / "convnexttiny_results.txt"
 
-ACCURACY_CHART_PATH = RESULTS_DIR / "efficientnetv2_accuracy.png"
-LOSS_CHART_PATH = RESULTS_DIR / "efficientnetv2_loss.png"
+ACCURACY_CHART_PATH = RESULTS_DIR / "convnexttiny_accuracy.png"
+LOSS_CHART_PATH = RESULTS_DIR / "convnexttiny_loss.png"
 
 IMAGE_SIZE = 224
 BATCH_SIZE = 4

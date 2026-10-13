@@ -1,0 +1,14 @@
+venv/
+data/
+uploads/
+results/
+notebooks/
+reports/
+machine-9-4-object-recognition/
+.git/
+__pycache__/
+*.pyc
+
+# Only the "best" checkpoints are needed to run the app.
+models/*_final.pth
+models/*_last_checkpoint.pth

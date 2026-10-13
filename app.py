@@ -1,14 +1,20 @@
-from pathlib import Path
 import time
-import uuid
 
 import torch
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
-from torch import nn
-from torchvision import transforms
-from torchvision.models import convnext_tiny
-from werkzeug.utils import secure_filename
+
+from modules.gradcam import (
+    compute_gradcam,
+    image_to_data_url,
+    overlay_heatmap,
+)
+from modules.models import (
+    MODEL_DIR,
+    image_transform,
+    load_available_models,
+    predict_top_k,
+)
 
 
 # =========================================================
@@ -17,21 +23,17 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-UPLOAD_FOLDER = PROJECT_ROOT / "uploads"
-
-# IMPORTANT:
-# Your ConvNeXt training script saved ConvNeXt checkpoints
-# using EfficientNet filenames. Therefore this path is correct.
-MODEL_PATH = PROJECT_ROOT / "models" / "efficientnetv2_best.pth"
-
-UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
+
+PORT = 7860
 
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Every trained model found in the models folder, best model first.
+models = load_available_models(device)
+default_model_key = next(iter(models))
 
 
 # =========================================================
@@ -54,83 +56,16 @@ def confidence_level(confidence: float) -> str:
 
 
 # =========================================================
-# MODEL DEFINITION
-# This exactly matches train_convnexttiny.py
-# =========================================================
-
-def build_model(number_of_classes: int) -> nn.Module:
-    model = convnext_tiny(weights=None)
-
-    for parameter in model.features.parameters():
-        parameter.requires_grad = False
-
-    classifier_input_features = model.classifier[2].in_features
-
-    model.classifier[2] = nn.Linear(
-        classifier_input_features,
-        number_of_classes
-    )
-
-    return model
-
-
-def load_model():
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model file not found: {MODEL_PATH}"
-        )
-
-    checkpoint = torch.load(
-        MODEL_PATH,
-        map_location=device,
-        weights_only=False
-    )
-
-    if "model_state_dict" not in checkpoint:
-        raise KeyError("Checkpoint is missing 'model_state_dict'.")
-
-    if "class_names" not in checkpoint:
-        raise KeyError("Checkpoint is missing 'class_names'.")
-
-    class_names = checkpoint["class_names"]
-    model = build_model(len(class_names))
-
-    model.load_state_dict(
-        checkpoint["model_state_dict"],
-        strict=True
-    )
-
-    model.to(device)
-    model.eval()
-
-    return model, class_names
-
-
-model, class_names = load_model()
-
-
-# =========================================================
-# IMAGE PREPROCESSING
-# Matches validation/test preprocessing
-# =========================================================
-
-image_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
-])
-
-
-# =========================================================
 # ROUTES
 # =========================================================
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        models=models.values(),
+        default_model_key=default_model_key
+    )
 
 
 @app.route("/predict", methods=["POST"])
@@ -149,19 +84,19 @@ def predict():
             "message": "Only PNG, JPG, and JPEG files are allowed."
         }), 400
 
-    filename = (
-        f"{uuid.uuid4().hex}_"
-        f"{secure_filename(image_file.filename)}"
-    )
+    model_key = request.form.get("model", default_model_key)
 
-    saved_path = UPLOAD_FOLDER / filename
-    image_file.save(saved_path)
+    if model_key not in models:
+        return jsonify({
+            "success": False,
+            "message": "The selected model is not available."
+        }), 400
+
+    selected = models[model_key]
 
     try:
-        image = Image.open(saved_path).convert("RGB")
+        image = Image.open(image_file.stream).convert("RGB")
     except Exception:
-        saved_path.unlink(missing_ok=True)
-
         return jsonify({
             "success": False,
             "message": "The uploaded file is not a valid image."
@@ -171,34 +106,22 @@ def predict():
 
     start_time = time.perf_counter()
 
-    with torch.inference_mode():
-        outputs = model(input_tensor)
-        probabilities = torch.softmax(outputs, dim=1)
+    top_5_predictions = predict_top_k(selected, input_tensor, k=5)
 
     inference_time_ms = (
         time.perf_counter() - start_time
     ) * 1000
 
-    top_k = min(5, len(class_names))
+    best_prediction = top_5_predictions[0]
 
-    top_confidences, top_indices = torch.topk(
-        probabilities,
-        k=top_k,
-        dim=1
+    heatmap = compute_gradcam(
+        selected.model,
+        selected.gradcam_layer,
+        input_tensor,
+        best_prediction["index"]
     )
 
-    top_5_predictions = []
-
-    for class_index, class_confidence in zip(
-        top_indices[0].tolist(),
-        top_confidences[0].tolist()
-    ):
-        top_5_predictions.append({
-            "label": class_names[class_index],
-            "confidence": round(class_confidence * 100, 2)
-        })
-
-    best_prediction = top_5_predictions[0]
+    gradcam_url = image_to_data_url(overlay_heatmap(image, heatmap))
 
     return jsonify({
         "success": True,
@@ -207,9 +130,16 @@ def predict():
         "confidence_level": confidence_level(
             best_prediction["confidence"] / 100
         ),
-        "model": "ConvNeXt-Tiny",
+        "model": selected.name,
         "inference_time_ms": round(inference_time_ms, 2),
-        "top_5_predictions": top_5_predictions,
+        "top_5_predictions": [
+            {
+                "label": prediction["label"],
+                "confidence": prediction["confidence"]
+            }
+            for prediction in top_5_predictions
+        ],
+        "gradcam_url": gradcam_url,
         "message": "Prediction completed successfully."
     })
 
@@ -227,14 +157,19 @@ if __name__ == "__main__":
     print("Assistive Object Recognition")
     print("=" * 60)
     print(f"Device: {device}")
-    print(f"Loaded checkpoint: {MODEL_PATH}")
-    print("Architecture: ConvNeXt-Tiny")
-    print(f"Number of classes: {len(class_names)}")
-    print("Open: http://127.0.0.1:5000")
+    print(f"Model folder: {MODEL_DIR}")
+
+    for loaded in models.values():
+        print(
+            f"Loaded {loaded.name}: {loaded.checkpoint_path.name} "
+            f"({len(loaded.class_names)} classes)"
+        )
+
+    print(f"Open: http://127.0.0.1:{PORT}")
     print("=" * 60)
 
     app.run(
-        host="127.0.0.1",
-        port=5000,
+        host="0.0.0.0",
+        port=PORT,
         debug=False
     )
